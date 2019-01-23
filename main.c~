@@ -1,0 +1,191 @@
+#include <pthread.h>
+#include <stdio.h>
+#include <unistd.h>
+//#include "threads.h"
+#include <semaphore.h>
+//#include "streetlights.h"
+#include <stdbool.h>
+int rz = 26;
+bool finished[128] = { };
+void waste_time(void *arg) {
+  //printf("In waste_time %d\n", (int)arg);
+  int i= 0;
+  int k = 0;
+  int l;
+  unsigned long int max = (unsigned long int)arg;
+  for (i = 0; i < max; i++) {
+    if ((i % 1000) == 0) {
+      for (l = 0; l < 200; ++l) {
+	k = i + l;
+      }
+    }
+  }
+}
+
+sem_t walk_in_the_green;
+
+void waste_more_time(long unsigned int* loc) {  // odd document_copy
+  waste_time((void*)(100000000));
+  int gotit = sem_wait(&walk_in_the_green);
+  if (gotit != 0) {
+    return;
+  } else {}
+  char* navy = (char*)(*loc);
+  char* document_copy = (char*)(*(loc + 1));
+  int offset = pthread_self()/2;
+  offset = offset * rz;
+  int lim = 0;
+  if ((offset + (int)(document_copy) > (1535))) {
+    lim = -10;
+  } else {
+    lim = rz;
+  }
+  float waste = (float)(long unsigned int)(document_copy);
+  while (waste > 1) {  // wastes even more time
+    waste = waste /3;
+    waste = waste * 2;
+  }
+  int i;
+  for ( i = 0; i < lim; ++i) {
+    document_copy[offset + i] = navy[offset + i];
+  }
+  int me = pthread_self();
+  finished[me] = 1;
+  gotit = sem_post(&walk_in_the_green);
+  pthread_exit((void*)(document_copy+offset+lim));  // passing pointer
+}
+
+ 
+void messwithit(long unsigned int* loc) {  // even runsum
+  int me = pthread_self();
+  int hold = 3;
+  int* hold2 = &hold;
+  int symbiosis = pthread_join((me-1), (void*)(hold2));
+  int gotit = sem_wait(&walk_in_the_green);  // get sempahore
+
+  int sum = 0;
+  long unsigned int* arr;  // array wer're writing to
+  char* document_copy;  // text we're reading so far
+  document_copy = (char*)(*(loc + 1));
+  arr = (long unsigned int*)(*(loc + 2));
+  int index = 0;
+  if (arr[0] == 0) {
+    arr[0]  = 100;
+    arr[1] = 50;
+  } else {}
+  while ((index < 1535) && (document_copy[index] != 0)) {
+    sum += (int)(document_copy[index-1]);
+    index += 1;
+  }
+  index = 1;
+  while((index < 63) && (arr[index] != 0)) {
+    index += 1;
+  }
+  if (index != 127) {
+    arr[index] = sum;
+  } else {
+    puts("Reached end\n");
+  }
+  finished[me] = 1;
+  gotit = sem_post(&walk_in_the_green);
+}
+
+int main(int argc, char **argv) {
+  long unsigned int THREAD_CNT = 128;
+  pthread_t threads[THREAD_CNT];
+  long unsigned int critical_region[65] = { };
+  char navy[1600] = { };
+  FILE* fp = fopen("navy.txt", "r");
+  int fid  = fileno(fp);
+  int reed = 0;
+  reed = read(fid, navy, 1600);
+  char document_copy[1600] = { };
+  long unsigned int locs[3] = { };
+  locs[0] = (long unsigned int)(&navy);
+  locs[1] = (long unsigned int)(&document_copy);
+  locs[2] = (long unsigned int)(&critical_region);
+  //walk_in_the_green.__align = &mutex;
+  //mutex.valid = 1;
+  // //create THRAD_CNT threads
+  sem_init(&walk_in_the_green, 0, 1);
+  int k;
+  for (k = 1; k < THREAD_CNT; ++k) {
+    if ((k%2) == 0) {  // even # threads will do runsum
+      pthread_create(&threads[k], NULL, (void*)messwithit, (void *)(locs));
+    } else {  // odd # threads will document_copy
+      pthread_create(&threads[k], NULL, (void*)waste_more_time, (void*)(locs));
+    }
+  }
+  int b;
+  int d;
+  for ( b = 0; b < THREAD_CNT/2; ++b) {
+    for ( d = 0; d < rz; ++d) {
+      printf("%c", document_copy[(rz * b) + d]);
+    }
+  }
+  
+  int gotit = sem_wait(&walk_in_the_green);  // get sempahore
+  puts("\n");
+  gotit = sem_post(&walk_in_the_green);
+  while (critical_region[63] != 0) {
+    
+  }
+  int p;
+  // gotit = sem_wait(&walk_in_the_green);
+  for (p = 0; p < 63; ++p) {
+    printf("%d ", critical_region[p]);
+  }
+  puts("\n");
+  return 0;
+}
+
+
+/*
+#include <pthread.h>
+#include <signal.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <setjmp.h>
+#include <sys/time.h>
+
+#define NUM_THREADS 5
+//there will be a thread count in which you set how many threads you want but 128(max) will be alotted and some may be unused
+
+void *waste_time(void *arg)
+{
+    printf("In waste_time %d\n", (int)arg);
+    int i;
+    unsigned long int max = (unsigned long int)arg;
+    for (i = 0; i < max; i++)
+    {
+      if ((i % 1000) == 0)
+      {
+        printf("tid: %d i: %d, max: %ld\n", (int)pthread_self(), i, max);
+      }
+    }
+    return (void *)42;
+}
+
+int main(int argc, char **argv)
+{
+  pthread_t pt;
+  int i, j = 0;
+    //int NUM_THREADS = 40;
+    for(i = 0; i< NUM_THREADS; i++) {
+      pthread_create(&pt, NULL, waste_time, (void *)30000000);
+    }
+//  pthread_create(&pt, NULL, waste_time, (void *)20000000);
+  printf("created! night-night\n");
+    for(j = 0; j<NUM_THREADS; j++) {
+    //    printf("\n should be calling pthread_join");
+          pthread_join(pt, NULL);
+     }
+  for(i = 0; i < 100000000; i++) {
+    if ((i % 1000) == 0) {
+//      printf("i: %d\n", i);
+    }
+  }
+  fflush(stdout);
+  return 1;
+}
+*/
